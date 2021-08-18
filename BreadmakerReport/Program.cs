@@ -3,6 +3,8 @@ using System;
 using System.Linq;
 using RatingAdjustment.Services;
 using BreadmakerReport.Models;
+using System.Collections.Generic;
+
 
 namespace BreadmakerReport
 {
@@ -16,8 +18,15 @@ namespace BreadmakerReport
             Console.WriteLine("Welcome to Bread World");
             var BreadmakerDb = new BreadMakerSqliteContext(dbfile);
             var BMList = BreadmakerDb.Breadmakers
-                // TODO: add LINQ logic ...
-                //       ...
+                .Include(i => i.Reviews)
+                .AsEnumerable()
+                .Select(sel => new {
+                    Reviews = sel.Reviews.Count,
+                    Average = Math.Round(sel.Reviews.Average(s => s.stars), 2),
+                    Adjust = Math.Round(ratingAdjustmentService.Adjust(sel.Reviews.Average(s => s.stars), sel.Reviews.Count()), 2),
+                    sel.title
+                })
+                .OrderByDescending(bm => bm.Adjust)
                 .ToList();
 
             Console.WriteLine("[#]  Reviews Average  Adjust    Description");
@@ -25,7 +34,7 @@ namespace BreadmakerReport
             {
                 var i = BMList[j];
                 // TODO: add output
-                // Console.WriteLine( ... );
+                Console.WriteLine("\n[{0}] {1} {2} {3} {4}", j + 1, i.Reviews, i.Average, i.Adjust, i.title);
             }
         }
     }
